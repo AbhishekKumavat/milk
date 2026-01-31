@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Milk Bill - Official</title>
+    <title>Milk Bill - Custom Rate</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -38,12 +38,12 @@
         }
 
         .header h1 { margin: 0; font-size: 20px; }
-        .header img { width: 50px; height: auto; }
+        .header img { width: 45px; height: auto; }
 
         .input-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
             margin-bottom: 15px;
         }
 
@@ -59,21 +59,16 @@
             box-sizing: border-box;
         }
 
-        #billMonth {
-            color: transparent;
-            text-shadow: 0 0 0 #000;
-        }
+        /* Hide year behavior visually */
+        #billMonth { color: transparent; text-shadow: 0 0 0 #000; }
 
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
+        .table-responsive { width: 100%; overflow-x: auto; }
 
         table { width: 100%; border-collapse: collapse; min-width: 350px; }
-        th, td { border: 1px solid var(--border-color); padding: 5px 4px; text-align: center; font-size: 12px; }
+        th, td { border: 1px solid var(--border-color); padding: 4px; text-align: center; font-size: 12px; }
         th { background-color: #f8f9fa; }
 
-        .amt-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
+        .amt-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; padding-right: 8px; }
         .total-row { font-weight: bold; background-color: #f0f0f0; }
         .final-total-row { font-weight: bold; background-color: #dcdcdc; font-size: 13px; }
 
@@ -96,48 +91,22 @@
             button { flex: 1; }
         }
 
-        /* CRITICAL SINGLE-PAGE PRINT FIX */
+        /* ONE PAGE PRINT FIX */
         @media print {
-            @page { 
-                size: A4 portrait; 
-                margin: 5mm; /* Reduced margin to maximize space */
-            }
-            
-            html, body { 
-                height: 99%; /* Prevents blank 2nd page */
-                overflow: hidden;
-            }
-
+            @page { size: A4 portrait; margin: 4mm; }
+            html, body { height: 99%; overflow: hidden; }
             body { background: white; padding: 0; }
-            
             .container { 
-                border: none; 
-                box-shadow: none; 
-                width: 100%; 
-                max-width: 100%; 
-                padding: 0;
-                transform: scale(0.92); /* Shrinks everything to fit mobile print margins */
+                border: none; box-shadow: none; width: 100%; max-width: 100%; padding: 0;
+                transform: scale(0.90); /* Scaled down slightly more for mobile/desktop parity */
                 transform-origin: top center;
             }
-
             .no-print-area { display: none; }
-            
-            /* Remove all input styling for clean look */
-            input, select { 
-                border: none !important; 
-                background: transparent !important; 
-                padding: 0 !important; 
-                font-size: 11px !important;
-            }
-
-            th, td { 
-                padding: 2px 4px !important; 
-                font-size: 10px !important; 
-                line-height: 1.1 !important;
-            }
-            
+            input, select { border: none !important; background: transparent !important; padding: 0 !important; font-size: 11px !important; }
+            th, td { padding: 2px 4px !important; font-size: 10px !important; line-height: 1.1 !important; }
             #billMonth { text-shadow: none !important; color: #000 !important; }
             .extra-input { border: none !important; text-align: right; width: 100%; }
+            img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
 </head>
@@ -146,24 +115,21 @@
 <div class="container">
     <div class="header">
         <h1>MILK BILL</h1>
-        <img src="https://cdn-icons-png.flaticon.com/512/1998/1998610.png" alt="Icon">
+        <img src="https://cdn-icons-png.flaticon.com/512/1998/1998610.png" alt="Milk Icon">
     </div>
 
     <div class="input-section">
         <div class="input-group">
-            <label>Name</label>
-            <input type="text" id="custName" placeholder="Customer Name">
+            <label>Customer Name</label>
+            <input type="text" id="custName" placeholder="Name">
         </div>
         <div class="input-group">
             <label>Month</label>
             <input type="month" id="billMonth" onchange="handleMonthChange()">
         </div>
         <div class="input-group">
-            <label>Milk Type</label>
-            <select id="milkType" onchange="calculateAll()">
-                <option value="cow">Cow (₹65/L)</option>
-                <option value="buffalo">Buffalo (₹70/L)</option>
-            </select>
+            <label>Rate per Litre</label>
+            <input type="number" id="baseRate" value="65" step="0.5" oninput="calculateAll()">
         </div>
         <div class="input-group">
             <label>Daily Qty</label>
@@ -216,22 +182,10 @@
     monthPicker.value = now.toISOString().substring(0, 7);
     document.getElementById('billDate').value = now.toISOString().substring(0, 10);
 
-    function getRate(type, qty) {
-        if (qty <= 0) return 0;
-        const rates = { 
-            cow: { full: 65, half: 32.5, quarter: 16.25 }, 
-            buffalo: { full: 70, half: 35, quarter: 17.50 } 
-        };
-        const currentRates = rates[type];
-        let wholeLitres = Math.floor(qty);
-        let remainder = qty - wholeLitres;
-        let total = wholeLitres * currentRates.full;
-        
-        if (remainder === 0.25) total += currentRates.quarter;
-        else if (remainder === 0.5) total += currentRates.half;
-        else if (remainder === 0.75) total += currentRates.half + currentRates.quarter;
-        
-        return total;
+    // Dynamic Math Logic: Rate is divided proportionally for any quantity
+    function getRate(baseRate, qty) {
+        if (qty <= 0 || baseRate <= 0) return 0;
+        return baseRate * qty;
     }
 
     function handleMonthChange() {
@@ -240,8 +194,10 @@
         const [year, month] = val.split('-');
         const dateObj = new Date(year, month - 1);
         const monthName = dateObj.toLocaleString('default', { month: 'long' });
+        
         monthPicker.type = "text";
         monthPicker.value = monthName;
+        
         monthPicker.onfocus = function() { this.type = "month"; };
         monthPicker.onblur = function() {
             if(this.value.includes('-')) {
@@ -263,6 +219,7 @@
         const daysInMonth = new Date(year, month, 0).getDate();
         const tbody = document.getElementById('tableBody');
         const defaultQty = document.getElementById('defaultLitre').value || 0;
+        
         tbody.innerHTML = '';
         for (let i = 1; i <= daysInMonth; i++) {
             const dateStr = `${i < 10 ? '0'+i : i}/${month}/${year}`;
@@ -284,15 +241,17 @@
     }
 
     function calculateAll() {
-        const type = document.getElementById('milkType').value;
+        const baseRate = parseFloat(document.getElementById('baseRate').value) || 0;
         const extra = parseFloat(document.getElementById('extraAmount').value) || 0;
         let milkTotal = 0;
+        
         document.querySelectorAll('#tableBody tr').forEach(row => {
             const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
-            const amt = getRate(type, qty);
+            const amt = getRate(baseRate, qty);
             row.querySelector('.row-amt').innerText = amt.toFixed(2);
             milkTotal += amt;
         });
+        
         document.getElementById('milkTotal').innerText = milkTotal.toFixed(2);
         document.getElementById('grandTotal').innerText = (milkTotal + extra).toFixed(2);
     }
