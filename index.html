@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Milk Bill - Custom Rate</title>
+    <title>Milk Bill - Official</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -98,7 +98,7 @@
             body { background: white; padding: 0; }
             .container { 
                 border: none; box-shadow: none; width: 100%; max-width: 100%; padding: 0;
-                transform: scale(0.90); /* Scaled down slightly more for mobile/desktop parity */
+                transform: scale(0.90);
                 transform-origin: top center;
             }
             .no-print-area { display: none; }
@@ -126,6 +126,13 @@
         <div class="input-group">
             <label>Month</label>
             <input type="month" id="billMonth" onchange="handleMonthChange()">
+        </div>
+        <div class="input-group">
+            <label>Milk Type</label>
+            <select id="milkType">
+                <option value="Cow">Cow</option>
+                <option value="Buffalo">Buffalo</option>
+            </select>
         </div>
         <div class="input-group">
             <label>Rate per Litre</label>
@@ -182,7 +189,6 @@
     monthPicker.value = now.toISOString().substring(0, 7);
     document.getElementById('billDate').value = now.toISOString().substring(0, 10);
 
-    // Dynamic Math Logic: Rate is divided proportionally for any quantity
     function getRate(baseRate, qty) {
         if (qty <= 0 || baseRate <= 0) return 0;
         return baseRate * qty;
@@ -260,7 +266,8 @@
         const name = document.getElementById('custName').value || "Customer";
         const monthDisp = monthPicker.value;
         const total = document.getElementById('grandTotal').innerText;
-        const text = `*MILK BILL*\nName: ${name}\nMonth: ${monthDisp}\nTotal: ₹${total}`;
+        const type = document.getElementById('milkType').value;
+        const text = `*MILK BILL*\nName: ${name}\nMonth: ${monthDisp}\nType: ${type}\nTotal: ₹${total}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
 
