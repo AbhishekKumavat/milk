@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milk Bill - Official</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --border-color: #000;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: auto;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            border-radius: 8px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .header h1 { margin: 0; font-size: 20px; }
+        .header img { width: 50px; height: auto; }
+
+        /* Responsive Input Grid */
+        .input-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 10px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; color: #555; }
+
+        input, select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #billMonth {
+            color: transparent;
+            text-shadow: 0 0 0 #000;
+        }
+
+        /* Mobile Table Wrapper */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 400px; }
+        th, td { border: 1px solid var(--border-color); padding: 6px 4px; text-align: center; font-size: 12px; }
+        th { background-color: #f8f9fa; }
+
+        .amt-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
+        .total-row { font-weight: bold; background-color: #f0f0f0; }
+        .final-total-row { font-weight: bold; background-color: #dcdcdc; font-size: 14px; }
+
+        .extra-input {
+            width: 80px;
+            text-align: right;
+            border: 1px solid #000;
+            padding: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .no-print-area { 
+            display: flex; 
+            flex-direction: column;
+            gap: 10px; 
+            margin-top: 20px; 
+        }
+
+        button { 
+            padding: 12px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            color: white; 
+            font-size: 16px;
+        }
+
+        .btn-pdf { background-color: #e74c3c; }
+        .btn-wa { background-color: #27ae60; }
+
+        /* Desktop adjustments for buttons */
+        @media (min-width: 600px) {
+            .no-print-area { flex-direction: row; }
+            button { flex: 1; }
+            .header h1 { font-size: 24px; }
+            .header img { width: 60px; }
+        }
+
+        @media print {
+            @page { size: A4 portrait; margin: 0.3cm; }
+            body { background: white; padding: 0; }
+            .container { 
+                border: none; box-shadow: none; width: 100%; max-width: 100%; padding: 5px;
+                transform: scale(0.98); transform-origin: top center;
+            }
+            .no-print-area { display: none; }
+            .table-responsive { overflow: visible; }
+            th, td { padding: 2px 5px; font-size: 11px; height: 18px; }
+            input, select { border: none !important; background: transparent !important; appearance: none; -webkit-appearance: none; }
+            #billMonth { text-shadow: none !important; color: #000 !important; }
+            .extra-input { border: none !important; text-align: right; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>MILK BILL</h1>
+        <img src="https://cdn-icons-png.flaticon.com/512/1998/1998610.png" alt="Icon">
+    </div>
+
+    <div class="input-section">
+        <div class="input-group">
+            <label>Name</label>
+            <input type="text" id="custName" placeholder="Customer Name">
+        </div>
+        <div class="input-group">
+            <label>Month</label>
+            <input type="month" id="billMonth" onchange="handleMonthChange()">
+        </div>
+        <div class="input-group">
+            <label>Milk Type</label>
+            <select id="milkType" onchange="calculateAll()">
+                <option value="cow">Cow (₹65/L)</option>
+                <option value="buffalo">Buffalo (₹70/L)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Daily Qty</label>
+            <input type="number" id="defaultLitre" step="0.25" value="1" oninput="autoFillLitres()">
+        </div>
+        <div class="input-group">
+            <label>Bill Date</label>
+            <input type="date" id="billDate">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table id="billTable">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Date</th>
+                    <th style="width: 30%;">Litre</th>
+                    <th style="width: 35%;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" style="text-align: right;">MILK TOTAL</td>
+                    <td id="milkTotal" class="amt-cell">0.00</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="2" style="text-align: right;">EXTRA CHARGES</td>
+                    <td class="amt-cell">
+                        <input type="number" id="extraAmount" value="0" class="extra-input" oninput="calculateAll()">
+                    </td>
+                </tr>
+                <tr class="final-total-row">
+                    <td colspan="2" style="text-align: right;">GRAND TOTAL</td>
+                    <td id="grandTotal" class="amt-cell">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="no-print-area">
+        <button class="btn-pdf" onclick="window.print()">Download PDF</button>
+        <button class="btn-wa" onclick="sendWhatsApp()">Share on WhatsApp</button>
+    </div>
+</div>
+
+<script>
+    const now = new Date();
+    const monthPicker = document.getElementById('billMonth');
+    monthPicker.value = now.toISOString().substring(0, 7);
+    document.getElementById('billDate').value = now.toISOString().substring(0, 10);
+
+    function getRate(type, qty) {
+        if (qty <= 0) return 0;
+        const rates = { 
+            cow: { full: 65, half: 32.5, quarter: 16.25 }, 
+            buffalo: { full: 70, half: 35, quarter: 17.50 } 
+        };
+        const currentRates = rates[type];
+        let wholeLitres = Math.floor(qty);
+        let remainder = qty - wholeLitres;
+        let total = wholeLitres * currentRates.full;
+        
+        if (remainder === 0.25) total += currentRates.quarter;
+        else if (remainder === 0.5) total += currentRates.half;
+        else if (remainder === 0.75) total += currentRates.half + currentRates.quarter;
+        
+        return total;
+    }
+
+    function handleMonthChange() {
+        const val = monthPicker.value;
+        if(!val) return;
+        const [year, month] = val.split('-');
+        const dateObj = new Date(year, month - 1);
+        const monthName = dateObj.toLocaleString('default', { month: 'long' });
+        monthPicker.type = "text";
+        monthPicker.value = monthName;
+        monthPicker.onfocus = function() { this.type = "month"; };
+        monthPicker.onblur = function() {
+            if(this.value.includes('-')) {
+                const [y, m] = this.value.split('-');
+                const d = new Date(y, m - 1);
+                this.dataset.savedValue = this.value;
+                this.type = "text";
+                this.value = d.toLocaleString('default', { month: 'long' });
+            }
+        };
+        generateTable(year, month);
+    }
+
+    function generateTable(year, month) {
+        if(!year) {
+            const val = monthPicker.dataset.savedValue || now.toISOString().substring(0, 7);
+            [year, month] = val.split('-');
+        }
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const tbody = document.getElementById('tableBody');
+        const defaultQty = document.getElementById('defaultLitre').value || 0;
+        tbody.innerHTML = '';
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = `${i < 10 ? '0'+i : i}/${month}/${year}`;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${dateStr}</td>
+                <td><input type="number" step="0.25" min="0" value="${defaultQty}" class="row-qty" oninput="calculateAll()"></td>
+                <td class="row-amt amt-cell">0.00</td>
+            `;
+            tbody.appendChild(row);
+        }
+        calculateAll();
+    }
+
+    function autoFillLitres() {
+        const val = document.getElementById('defaultLitre').value;
+        document.querySelectorAll('.row-qty').forEach(input => input.value = val);
+        calculateAll();
+    }
+
+    function calculateAll() {
+        const type = document.getElementById('milkType').value;
+        const extra = parseFloat(document.getElementById('extraAmount').value) || 0;
+        let milkTotal = 0;
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+            const amt = getRate(type, qty);
+            row.querySelector('.row-amt').innerText = amt.toFixed(2);
+            milkTotal += amt;
+        });
+        document.getElementById('milkTotal').innerText = milkTotal.toFixed(2);
+        document.getElementById('grandTotal').innerText = (milkTotal + extra).toFixed(2);
+    }
+
+    function sendWhatsApp() {
+        const name = document.getElementById('custName').value || "Customer";
+        const monthDisp = monthPicker.value;
+        const total = document.getElementById('grandTotal').innerText;
+        const text = `*MILK BILL*\nName: ${name}\nMonth: ${monthDisp}\nTotal: ₹${total}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    handleMonthChange();
+</script>
+</body>
+</html>
